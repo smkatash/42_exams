@@ -1,0 +1,71 @@
+Assignment name  : ft_atoi_base
+Expected files   : ft_atoi_base.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Write a function that converts the string argument str (base N <= 16)
+to an integer (base 10) and returns it.
+
+The characters recognized in the input are: 0123456789abcdef
+Those are, of course, to be trimmed according to the requested base. For
+example, base 4 recognizes "0123" and base 16 recognizes "0123456789abcdef".
+
+Uppercase letters must also be recognized: "12fdb3" is the same as "12FDB3".
+
+Minus signs ('-') are interpreted only if they are the first character of the
+string.
+
+Your function must be declared as follows:
+
+int	ft_atoi_base(const char *str, int str_base);
+
+int	base(int c, int base)
+{
+	char *str = "0123456789abcdef";
+	char *str2 = "0123456789ABCDEF";
+	int  i = 0;
+
+	while (i < base)
+	{
+		if (c == str[i] || c == str2[i])
+			return (i);
+		i++;
+	}
+	return (-1);
+}
+
+int ft_atoi_base(const char *str, int str_base)
+{
+	int nb = 0;
+	int negatif = 0;
+	int	i = 0;
+	while (ft_iswhitespace(str[i]))
+		i++;
+	if (str[i] == '+' || str[i] == '-')
+	{
+		if (str[i] == '-')
+			negatif = 1;
+		i++;
+	}
+	while (base(str[i], str_base) != -1)
+	{
+		nb = nb * str_base;
+		nb = nb + base(str[i], str_base);
+		i++;
+	}
+	if (negatif)
+		return (-nb);
+	return (nb);
+}
+
+int	main(int ac, char **av)
+{
+	int		nb;
+	if (ac >= 3)
+	{
+		nb = ft_atoi_base(av[1], atoi(av[2]));
+		printf("%d\n", nb);
+	}
+	return (0);
+}
+1244595
