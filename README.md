@@ -1,6 +1,6 @@
 # 42_exams
 
-This repository contains my solutions to assignments of rank 02 at 42exam.
+This repository contains my practice solutions at 42exams.
 
 # Functions <a name="Assignements according to ranks: "></a>
 
