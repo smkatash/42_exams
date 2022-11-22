@@ -158,11 +158,11 @@ t_shell	*parse(char **argv, int argc)
 	i = 1;
 	while (i < argc)
 	{
-		// if (strcmp(argv[i], ";") == 0)
-		// {
-		// 	i++;
-		// 	continue;
-		// }
+		if (strcmp(argv[i], ";") == 0)
+		{
+			i++;
+			continue;
+		}
 		i += lexer(&head, &argv[i]);
 		i++;
 	}
