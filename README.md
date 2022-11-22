@@ -1,10 +1,9 @@
-# 42_exam-rank02
+# 42_exams
 
 This repository contains my solutions to assignments of rank 02 at 42exam.
 
-# Functions <a name="functions"></a>
+# Functions <a name="Assignements according to ranks: "></a>
 
-1. [level01](level01/) 
-2. [level02](level02/) 
-3. [level03](level03/) 
-4. [level04](level04/) 
+1. [EXAM_RANK_02](rank_02/) 
+2. [EXAM_RANK_03](rank_03/) 
+3. [EXAM_RANK_04](rank_04/) 
