@@ -1,7 +1,8 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
+
 #define UNDEF 0
 #define PIPE 1
 #define SEPARATOR 2
@@ -9,32 +10,17 @@
 #define STDIN 0
 #define STDOUT 1
 
-typedef struct s_shell {
-	int		token;
-	int		len;
-	char	**cmd;
-	int		fd[2];
-	int		pipe_flag;
-	struct s_shell *prev;
+typedef struct s_shell
+{
+	int	token;
+	char **cmds;
+	int	len;
+	int	pipe;
+	int fd[2];
 	struct s_shell *next;
+	struct s_shell *prev;
 }	t_shell;
 
-int	ft_strlen(char *str)
-{
-	int	i;
-
-	i = 0;
-	while (str[i])
-		i++;
-	return (i);
-}
-
-void	ft_putstr_fd(char *str, int	fd, int status)
-{
-	write(fd, str, ft_strlen(str));
-	if (status)
-		exit(status);
-}
 
 void	free_array(char **str)
 {
@@ -49,110 +35,136 @@ void	free_array(char **str)
 	free(str);
 }
 
-void	free_list(t_shell *head)
+void	free_list(t_shell *lst)
 {
-	t_shell	*temp;
-	t_shell	*prev;
+	t_shell	*tmp;
+	t_shell	*next;
 
-	temp = head;
-	while (temp)
+	tmp = lst;
+	while (tmp)
 	{
-		prev = temp->next;
-		free_array(temp->cmd);
-		free(temp);
-		temp = prev;
+		next = tmp->next;
+		free_array(tmp->cmds);
+		free(tmp);
+		tmp = next;
 	}
 }
 
-int	cmd_len(char **argv)
+size_t ft_strlen(char *str)
+{
+	size_t	i;
+
+	i = 0;
+	while (str[i])
+		i++;
+	return (i);
+}
+
+void	ft_putstr_fd(char *str, int fd, int status)
+{
+	write(fd, str, ft_strlen(str));
+	if (status)
+		exit(status);
+}
+
+int	counter(char **str)
 {
 	int	i;
 
 	i = 0;
-	while (argv[i] && (strcmp(argv[i], "|") != 0) \
-		&& (strcmp(argv[i], ";")) != 0)
+	while(str[i] && strcmp(str[i], ";") != 0 \
+		&& strcmp(str[i], "|") != 0)
 		i++;
 	return (i);
 }
 
 char *ft_strdup(char *str)
 {
+	char	*new;
 	int		i;
-	char	*dst;
 
-	if (!str)
-		return (NULL);
-	dst = malloc(sizeof(char) * (ft_strlen(str) + 1));
-	if (!dst)
-		ft_putstr_fd("error: fatal\n", 2, 1);
 	i = 0;
-	while (str[i])
+	new = malloc(sizeof(char) * (ft_strlen(str) + 1));
+	if (!new)
+		ft_putstr_fd("error: fatal\n", 2, 1);
+	while(str[i])
 	{
-		dst[i] = str[i];
+		new[i] = str[i];
 		i++;
 	}
-	dst[i] = '\0';
-	return (dst);
+	new[i] = '\0';
+	return (new);
+}
+
+char **get_cmd(char **str, int len, int *tok)
+{
+	char	**arr;
+	int		i;
+
+	i = 0;
+	arr = malloc(sizeof(char *) * (len + 1));
+	if (!arr)
+		ft_putstr_fd("error: fatal\n", 2, 1);
+	while (i < len)
+	{
+		arr[i] = ft_strdup(str[i]);
+		i++;
+	}
+	arr[i] = NULL;
+	*tok = i;
+	return (arr);
 }
 
 int	set_token(char *str)
 {
 	if (str == NULL)
 		return (EOL);
-	if (strcmp(str, "|") == 0)
+	else if (strcmp(str, "|") == 0)
 		return (PIPE);
-	if (strcmp(str, ";") == 0)
+	else if (strcmp(str, ";") == 0)
 		return (SEPARATOR);
 	return (UNDEF);
 }
 
-void	push_back(t_shell **lst, t_shell *new)
+void	push_back(t_shell **head, t_shell *node)
 {
-	t_shell	*temp;
+	t_shell	*tmp;
 
-	temp = *lst;
-	if (*lst == NULL)
-		*lst = new;
+	tmp = *head;
+	if (*head == NULL)
+		*head = node;
 	else
 	{
-		while (temp->next != NULL)
-			temp = temp->next;
-		temp->next = new;
-		new->prev = temp;
+		while (tmp->next != NULL)
+			tmp = tmp->next;
+		tmp->next = node;
+		node->prev = tmp;
 	}
 }
 
-int	lexer(t_shell **head, char **argv)
+int	lexer(t_shell **head, char **str)
 {
-	t_shell	*new;
-	int		i;
+	t_shell *new;
+	int		tok;
 
+	tok = 0;
 	new = malloc(sizeof(t_shell));
 	if (!new)
 		ft_putstr_fd("error: fatal\n", 2, 1);
-	new->len = cmd_len(argv);
-	new->cmd = malloc(sizeof(char*) * (new->len + 1));
-	if (!new->cmd)
-		ft_putstr_fd("error: fatal\n", 2, 1);
-	i = 0;
-	while (i < new->len)
-	{
-		new->cmd[i] = ft_strdup(argv[i]);
-		i++;
-	}
-	new->cmd[i] = NULL;
-	new->token = set_token(argv[i]);
-	new->pipe_flag = 0;
-	new->prev = NULL;
+	new->len = counter(str);
+	new->cmds = get_cmd(str, new->len, &tok);
+	new->token = set_token(str[tok]);
+	new->pipe = 0;
 	new->next = NULL;
+	new->prev = NULL;
 	push_back(head, new);
-	return (i);
+	return (tok);
 }
 
-t_shell	*parse(char **argv, int argc)
+t_shell	*parse(int argc, char **argv)
 {
 	t_shell	*head;
-	int		i;
+	int	i;
 
 	head = NULL;
 	i = 1;
@@ -169,29 +181,17 @@ t_shell	*parse(char **argv, int argc)
 	return (head);
 }
 
-void	cd_cmd(char **argv, int argc)
+void	run_child(t_shell *node, char **envp)
 {
-	if (argc > 3 || argv[2] == NULL)
-		ft_putstr_fd("error: cd: bad arguments\n", 2, 1);
-	if (chdir(argv[2]) != 0)
-	{
-		ft_putstr_fd("error: cd: cannot change directory to ", 2, 0);
-		ft_putstr_fd(argv[2], 2, 0);
-		ft_putstr_fd("\n", 2, 1);
-	}
-}
-
-void	child_process(t_shell *node, char **envp)
-{
-	if (node->token == PIPE && (dup2(node->fd[STDOUT], STDOUT_FILENO) < 0))
+	if (node->token == PIPE && dup2(node->fd[STDOUT], STDOUT_FILENO) < 0)
 		ft_putstr_fd("error: fatal\n", 2, 1);
-	if (node->prev && node->prev->token == PIPE \
-		&& (dup2(node->prev->fd[STDIN], STDIN_FILENO) < 0))
+	if (node->prev && node->prev->token == PIPE && \
+		dup2(node->prev->fd[STDIN], STDIN_FILENO) < 0)
 		ft_putstr_fd("error: fatal\n", 2, 1);
-	if (execve(node->cmd[0], node->cmd, envp) == -1)
+	if (execve(node->cmds[0], node->cmds, envp) == -1)
 	{
 		ft_putstr_fd("error: cannot execute ", 2, 0);
-		ft_putstr_fd(node->cmd[0], 2, 0);
+		ft_putstr_fd(node->cmds[0], 2, 0);
 		ft_putstr_fd("\n", 2, 1);
 	}
 	exit(EXIT_SUCCESS);
@@ -199,47 +199,64 @@ void	child_process(t_shell *node, char **envp)
 
 int	run_cmd(t_shell *node, char **envp)
 {
-	int		status;
-	pid_t	pid;
+	int	status;
+	pid_t pid;
 
 	status = 0;
-	if (node->token == PIPE || (node->prev && node->prev->token == PIPE))
+	pid = 0;
+	if (strcmp(node->cmds[0], "cd") == 0)
 	{
-		if (pipe(node->fd))
-			ft_putstr_fd("error: fatal\n", 2, 1);
-		node->pipe_flag = 1;
+		if (node->len < 2)
+		{
+			ft_putstr_fd("error: cd: bad arguments\n", 2, 0);
+            status = 1;
+		}
+		else if (chdir(node->cmds[1]) != 0)
+        {
+            ft_putstr_fd("error: cd: cannot change directory to ", 2, 0);
+		    ft_putstr_fd(node->cmds[1], 2, 0);
+		    ft_putstr_fd("\n", 2, 0);
+            status = 1;
+        }
 	}
-	pid = fork();
-	if (pid == 0)
-	{
-		child_process(node, envp);
-	}
-	else if (pid < 0)
-		ft_putstr_fd("error: fatal\n", 2, 1);
 	else
 	{
-		waitpid(pid, &status, 0);
-		if (node->pipe_flag == 1)
+		if (node->token == PIPE || (node->prev && node->prev->token == PIPE))
 		{
-			close(node->fd[STDOUT]);
-			if (node->token == EOL || node->token == SEPARATOR)
-				close(node->fd[STDIN]);
+			if (pipe(node->fd))
+				ft_putstr_fd("error: fatal\n", 2, 1);
+			node->pipe = 1;
 		}
-		if (node->prev && node->prev->token == PIPE)
-			close(node->prev->fd[STDIN]);
-		if (WIFEXITED(status))
-			status = WEXITSTATUS(status);
+		pid = fork();
+		if (pid < 0)
+			ft_putstr_fd("error: fatal\n", 2, 1);
+		else if (pid == 0)
+			run_child(node, envp);
+		else
+		{
+			waitpid(pid, &status, 0);
+			if (node->pipe == 1)
+			{
+				close(node->fd[STDOUT]);
+				if (node->token == EOL || node->token == SEPARATOR)
+					close(node->fd[STDIN]);
+			}
+			if (node->prev && node->prev->token == PIPE)
+				close(node->prev->fd[STDIN]);
+			if (WIFEXITED(status))
+				status = WEXITSTATUS(status);
+		}
 	}
 	return (status);
 }
 
-int	execute(t_shell *lst, char **envp)
+int	execute(t_shell *head, char **envp)
 {
 	t_shell	*node;
 	int		status;
 
 	status = 0;
-	node = lst;
+	node = head;
 	while (node)
 	{
 		status = run_cmd(node, envp);
@@ -248,26 +265,20 @@ int	execute(t_shell *lst, char **envp)
 	return (status);
 }
 
-int main(int argc, char **argv, char **envp)
+int	main(int argc, char **argv, char **envp)
 {
-	
-	t_shell	*lst;
-	int		status;
+	int	status;
+	t_shell *lst;
 
-	lst = NULL;
 	status = 0;
+	lst = NULL;
 	if (argc > 1)
 	{
-		if (strcmp(argv[1], "cd") == 0)
-			cd_cmd(argv, argc);
-		else
+		lst = parse(argc, argv);
+		if (lst)
 		{
-			lst = parse(argv, argc);
-			if (lst)
-			{
-				status = execute(lst, envp);
-				free_list(lst);
-			}
+			status = execute(lst, envp);
+			free_list(lst);
 		}
 	}
 	return (status);
